@@ -11,3 +11,9 @@ https://login.microsoftonline.com/89a7f078-234b-46ee-a96e-0b8e8b347cbe/oauth2/v2
 # Thiết lập môi trường chạy python3
 # python3 -m venv .venv
 .venv\Scripts\activate
+
+# Lện mã hoá api key
+ ansible-vault encrypt ./Configs/autosecops_google_sheet.json
+# Lệnh descript ngược từ file mã hoá ra json
+ansible-vault decrypt ./Configs/autosecops_google_sheet.json  --output ./Configs/service_account.json
+
