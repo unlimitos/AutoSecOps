@@ -1,0 +1,12 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: In toàn bộ biến
+      debug:
+        var: vars
+
+    - name: Đọc update_data từ stdin (pipe)
+      debug:
+        msg: "Centos = {{ Centos }}, Nginx = {{ Nginx }}"

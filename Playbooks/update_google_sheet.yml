@@ -2,20 +2,41 @@
   connection: local
   gather_facts: no
   vars_files:
-    - ../Configs/autosecops_google_sheet.yml   # file đã ansible-vault encrypt
+    - ../Configs/autosecops_google_sheet.yml   # file vault chứa google_sheet_creds
+
+  vars:
+    spreadsheet_id: "1f-fHFE18Ipmzl_zyMh5-Jf5Mxn3xsd1fvuIPHn-dj44"
+    sheet_name: "Sheet1"
+    service_account_file: "../Configs/autosecops_google_sheet.json"
 
   tasks:
-    # - name: Debug biến google_sheet_creds
-    #   debug:
-    #       var: vars
-    #       # msg: "{{ google_sheet_creds | default('NOT FOUND') }}"
-
-    # - name: In biến google_sheet_creds
-    #   debug:
-    #     var: google_sheet_creds
-
-    - name: Chạy Python update Google Sheet với biến môi trường
+    - name: Đọc update_data từ stdin (pipe)
+      debug:
+        var: vars
+    - name: Gom tất cả extra-vars thành dict update_data
+      set_fact:
+        update_data: "{{ update_data }}"
+    - name: Chạy Python update Google Sheet (dev)
       command: >
-        python3 ../Actions/update_google_sheet.py myhost "20 days" "50%"
+        python3 ../Actions/update_google_sheet.py
+        --spreadsheet_id {{ spreadsheet_id }}
+        --sheet_name {{ sheet_name }}
+        --service_account_file {{ service_account_file }}
+      args:
+        stdin: "{{ update_data | to_json }}"    
       environment:
-        GOOGLE_SHEET_CREDENTIALS:  "{{ google_sheet_creds }}"
+        GOOGLE_SHEET_CREDENTIALS: "{{ google_sheet_creds }}"
+        MODE: "dev"  
+      when: mode == "dev"
+
+    - name: Chạy Python update Google Sheet (prod)
+      command: >
+        python3 ../Actions/update_google_sheet.py
+        --spreadsheet_id {{ spreadsheet_id }}
+        --sheet_name {{ sheet_name }}
+      args:
+        stdin: "{{ update_data | to_json }}"  
+      environment:
+        GOOGLE_SHEET_CREDENTIALS: "{{ google_sheet_creds }}"
+        MODE: "prod"
+      when: mode == "prod"

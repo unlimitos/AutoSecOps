@@ -1,23 +1,26 @@
 import os
+import sys
 import json
+import argparse
 import gspread
 from google.oauth2.service_account import Credentials
 
 
 class GoogleSheetUpdater:
     def __init__(self, spreadsheet_id, sheet_name,
-                 mode="dev", service_account_file=None, env_var="GOOGLE_SHEET_CREDENTIALS"):
+                 service_account_file=None, env_var="GOOGLE_SHEET_CREDENTIALS"):
         """
         :param spreadsheet_id: Google Sheet ID
         :param sheet_name: tên sheet/tab
-        :param mode: "dev" hoặc "prod"
         :param service_account_file: path file JSON (chỉ dùng cho dev)
         :param env_var: tên biến môi trường chứa key (prod)
         """
         self.spreadsheet_id = spreadsheet_id
         self.sheet_name = sheet_name
 
-        # Khởi tạo credentials theo mode
+        # Mode lấy từ biến môi trường (default: dev)
+        mode = os.getenv("MODE", "dev").lower()
+
         if mode == "dev":
             if not service_account_file:
                 raise ValueError("Dev mode yêu cầu service_account_file")
@@ -30,12 +33,17 @@ class GoogleSheetUpdater:
             if not creds_json:
                 raise ValueError(f"Prod mode yêu cầu biến môi trường {env_var}")
             creds_dict = json.loads(creds_json)
+
+            # Fix lỗi \n trong private_key
+            if "private_key" in creds_dict:
+                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+
             creds = Credentials.from_service_account_info(
                 creds_dict,
                 scopes=["https://www.googleapis.com/auth/spreadsheets"]
             )
         else:
-            raise ValueError("Mode chỉ có thể là 'dev' hoặc 'prod'")
+            raise ValueError("MODE chỉ có thể là 'dev' hoặc 'prod'")
 
         # Khởi tạo client
         client = gspread.authorize(creds)
@@ -65,28 +73,33 @@ class GoogleSheetUpdater:
 
 
 # ===============================
-# Demo sử dụng
+# Main
 if __name__ == "__main__":
-    SPREADSHEET_ID = "1f-fHFE18Ipmzl_zyMh5-Jf5Mxn3xsd1fvuIPHn-dj44"
-    SHEET_NAME = "Sheet1"
+    parser = argparse.ArgumentParser(description="Update Google Sheet")
+    parser.add_argument("--spreadsheet_id", required=True, help="Google Spreadsheet ID")
+    parser.add_argument("--sheet_name", required=True, help="Tên sheet/tab")
+    parser.add_argument("--service_account_file", help="Path JSON file (dev mode)")
+    parser.add_argument("--data", help="Dữ liệu update, dạng JSON string (optional)")
 
-    # Case DEV (local file)
-    # updater = GoogleSheetUpdater(
-    #     spreadsheet_id=SPREADSHEET_ID,
-    #     sheet_name=SHEET_NAME,
-    #     mode="dev",
-    #     service_account_file="./Configs/service_account.json"
-    # )
+    args = parser.parse_args()
 
-    # Case PROD (env var, inject qua Ansible Vault)
+    # Nếu không có --data thì đọc từ stdin (extra-vars @- của ansible)
+    if args.data:
+        try:
+            update_data = json.loads(args.data)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"--data không phải JSON hợp lệ: {e}")
+    else:
+        try:
+            raw_input = sys.stdin.read().strip()
+            update_data = json.loads(raw_input) if raw_input else {}
+        except json.JSONDecodeError as e:
+            raise ValueError(f"stdin không phải JSON hợp lệ: {e}")
+
     updater = GoogleSheetUpdater(
-        spreadsheet_id=SPREADSHEET_ID,
-        sheet_name=SHEET_NAME,
-        mode="prod",
-        env_var="GOOGLE_SHEET_CREDENTIALS"
+        spreadsheet_id=args.spreadsheet_id,
+        sheet_name=args.sheet_name,
+        service_account_file=args.service_account_file
     )
 
-    updater.update_multi({
-        "Centos": "Host1",
-        "Nginx": "Running fast"
-    })
+    updater.update_multi(update_data)
