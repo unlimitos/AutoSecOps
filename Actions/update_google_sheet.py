@@ -14,6 +14,10 @@ class GoogleSheetUpdater:
         :param sheet_name: tên sheet/tab
         :param service_account_file: path file JSON (chỉ dùng cho dev)
         :param env_var: tên biến môi trường chứa key (prod)
+        stdin update_data : json data 
+        example : 
+            echo '{"update_data": {"Centos": "Host1", "Nginx": "Running fast 123456"}}'   | 
+            ansible-playbook ./Playbooks/update_google_sheet.yml    --extra-vars "$(cat -)"  --extra-vars "mode=dev" -i localhost, --ask-vault-pass
         """
         self.spreadsheet_id = spreadsheet_id
         self.sheet_name = sheet_name
@@ -44,8 +48,8 @@ class GoogleSheetUpdater:
             )
         else:
             raise ValueError("MODE chỉ có thể là 'dev' hoặc 'prod'")
-
-        # Khởi tạo client
+ 
+        # Khởi tạo clients
         client = gspread.authorize(creds)
         self.sheet = client.open_by_key(self.spreadsheet_id).worksheet(self.sheet_name)
 
