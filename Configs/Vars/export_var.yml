@@ -1,0 +1,9 @@
+- name: Load Google Sheet credentials into env var
+  set_fact:
+    google_sheet_creds: "{{ lookup('file', './Configs/autosecops_google_sheet.json') }}"
+
+- name: Run updater script
+  environment:
+    GOOGLE_SHEET_CREDENTIALS: "{{ google_sheet_creds }}"
+  command: >
+    python3 update_google_sheet.py

@@ -1,0 +1,21 @@
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  vars_files:
+    - ../Configs/autosecops_google_sheet.yml   # file đã ansible-vault encrypt
+
+  tasks:
+    # - name: Debug biến google_sheet_creds
+    #   debug:
+    #       var: vars
+    #       # msg: "{{ google_sheet_creds | default('NOT FOUND') }}"
+
+    # - name: In biến google_sheet_creds
+    #   debug:
+    #     var: google_sheet_creds
+
+    - name: Chạy Python update Google Sheet với biến môi trường
+      command: >
+        python3 ../Actions/update_google_sheet.py myhost "20 days" "50%"
+      environment:
+        GOOGLE_SHEET_CREDENTIALS:  "{{ google_sheet_creds }}"
