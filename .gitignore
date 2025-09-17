@@ -1,3 +1,5 @@
 Logs/
 Configs/service_account.json
 Configs/autosecops_google_sheet.json
+.venv
+Reports/

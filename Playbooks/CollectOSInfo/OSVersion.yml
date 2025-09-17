@@ -1,0 +1,44 @@
+---
+- name: Gather Linux OS Version and export to CSV
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Thử gather_facts nếu có Python hỗ trợ
+      setup:
+      register: osfacts
+      ignore_errors: yes
+
+    - name: Set fact từ gather_facts
+      set_fact:
+        host_os_version: "{{ ansible_distribution | default('Unknown') }} {{ ansible_distribution_version | default('') }}"
+      when: osfacts is succeeded
+
+    - name: Fallback - lấy OS version bằng cat /etc/*release*
+      raw: cat /etc/*release*
+      register: osrelease
+      when: osfacts is failed
+
+    - name: Set fact từ fallback
+      set_fact:
+        host_os_version: "{{ osrelease.stdout_lines | join(' | ') }}"
+      when: osfacts is failed
+
+    - name: In ra OS version của host
+      debug:
+        msg: "The OS Version on {{ inventory_hostname }} is: {{ host_os_version }}"
+
+    - name: Đảm bảo file CSV có header (chạy 1 lần)
+      local_action:
+        module: copy
+        dest: "../../Reports/os_versions.csv"
+        content: "Hostname,OS Version\n"
+        force: no
+      run_once: true
+
+    - name: Append OS info của từng host vào CSV
+      local_action:
+        module: lineinfile
+        path: "../../Reports/os_versions.csv"
+        line: "{{ inventory_hostname }},{{ host_os_version | default('Unknown') }}"
+        insertafter: EOF
+      delegate_to: localhost

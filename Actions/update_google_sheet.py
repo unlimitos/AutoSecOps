@@ -1,9 +1,44 @@
 import os
 import sys
-import json
+import json, ast
 import argparse
 import gspread
+from typing import Tuple, Union
 from google.oauth2.service_account import Credentials
+
+def to_dict(data: Union[str, dict]) -> Tuple[bool, Union[dict, str]]:
+    """
+    Chuyển đổi data (JSON string, double-encoded JSON, hoặc Python dict string)
+    thành dict Python.
+
+    Trả về:
+        (True, dict) nếu thành công
+        (False, error_message) nếu thất bại
+    """
+    # Return if data is dict
+    if isinstance(data, dict):
+        return True, data
+
+    if not isinstance(data, str):
+        return False, f"Unsupported type: {type(data)}"
+
+    try:
+        # Thử parse JSON chuẩn
+        parsed = json.loads(data)
+        if isinstance(parsed, str):  # double-encoded JSON
+            parsed = json.loads(parsed)
+        if isinstance(parsed, dict):
+            return True, parsed
+        return False, f"Parsed JSON không phải dict: {type(parsed)}"
+    except json.JSONDecodeError:
+        try:
+            # Thử parse Python dict string: {'a': 1, 'b': 2}
+            parsed = ast.literal_eval(data)
+            if isinstance(parsed, dict):
+                return True, parsed
+            return False, f"Parsed literal không phải dict: {type(parsed)}"
+        except Exception as e:
+            return False, f"Literal eval error: {e}"
 
 
 class GoogleSheetUpdater:
@@ -36,16 +71,17 @@ class GoogleSheetUpdater:
             creds_json = os.getenv(env_var)
             if not creds_json:
                 raise ValueError(f"Prod mode yêu cầu biến môi trường {env_var}")
-            creds_dict = json.loads(creds_json)
+                
+            is_success, creds_dict = to_dict(creds_json)
+            if is_success == True:
+                # Fix lỗi \n trong private_key
+                if "private_key" in creds_dict:
+                    creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 
-            # Fix lỗi \n trong private_key
-            if "private_key" in creds_dict:
-                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-
-            creds = Credentials.from_service_account_info(
-                creds_dict,
-                scopes=["https://www.googleapis.com/auth/spreadsheets"]
-            )
+                creds = Credentials.from_service_account_info(
+                    creds_dict,
+                    scopes=["https://www.googleapis.com/auth/spreadsheets"]
+                )
         else:
             raise ValueError("MODE chỉ có thể là 'dev' hoặc 'prod'")
  

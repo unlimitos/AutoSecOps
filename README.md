@@ -20,3 +20,7 @@ SHEET_NAME = "Sheet1"
 ansible-vault decrypt ./Configs/autosecops_google_sheet.json  --output ./Configs/service_account.json
 
 echo '{"update_data": {"Centos": "Host1", "Nginx": "Running fast"}}'  | ansible-playbook ./Playbooks/update_google_sheet.yml  --extra-vars "$(cat -)"  --extra-vars "mode=prod" -i localhost, --ask-vault-pass  -vvv
+
+
+# Action list
+ansible-playbook -i HostsConfig.ini ./CollectOSInfo/OSVersion.yml
