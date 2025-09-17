@@ -1,0 +1,102 @@
+---
+- name: Thu thập danh sách gói phổ biến CNTT và xuất CSV
+  hosts: all
+  gather_facts: yes
+  become: yes
+
+  vars:
+    package_patterns:
+      # Web servers
+      - "nginx"
+      - "apache2"
+      - "httpd"
+      - "tomcat"
+      - "jetty"
+      - "weblogic"
+
+      # Databases
+      - "mysql"
+      - "mariadb"
+      - "postgresql"
+      - "oracle"
+      - "mssql"
+      - "sqlite"
+
+      # Cache / Message Queue
+      - "redis"
+      - "memcached"
+      - "rabbitmq"
+      - "kafka"
+
+      # Languages / Runtime
+      - "openjdk"
+      - "java"
+      - "python"
+      - "php"
+      - "nodejs"
+      - "golang"
+      - "perl"
+      - "ruby"
+
+      # FTP / Web tools
+      - "vsftpd"
+      - "proftpd"
+
+      # Virtualization / Container
+      - "docker"
+      - "podman"
+      - "kubernetes"
+      - "esxi"
+
+  tasks:
+    - name: Get installed packages with zypper
+      command: zypper se --installed-only -s | awk -F'|' 'NR>2 {gsub(/^[ \t]+|[ \t]+$/, "", $2); gsub(/^[ \t]+|[ \t]+$/, "", $4); print $2 "," $4}'
+      register: zypper_out
+      when: ansible_distribution == "SLES" or
+            ansible_distribution == "SUSE Linux Enterprise Server"
+
+    - name: Debug zypper output
+      debug:
+        var: zypper_out.stdout_lines
+      when: zypper_out is defined
+
+    - name: Thu thập thông tin gói đã cài
+      package_facts:
+
+    - name: Lọc các gói phù hợp với patterns
+      set_fact:
+        filtered_packages: >-
+          {%- set results = [] -%}
+          {%- for pkg_name, pkg_list in ansible_facts.packages.items() -%}
+            {%- for pattern in package_patterns -%}
+              {%- if pkg_name is search(pattern) -%}
+                {%- set _ = results.append({'name': pkg_list[0].name, 'version': pkg_list[0].version}) -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endfor -%}
+          {{ results }}
+
+    - name: Chuẩn bị dữ liệu CSV
+      set_fact:
+        packages_csv: |
+          {% for item in filtered_packages | sort(attribute='name') | unique %}
+          {{ inventory_hostname }},{{ item.name }},{{ item.version }}
+          {% endfor %}
+
+    - name: Đảm bảo file CSV có header (chạy 1 lần)
+      local_action:
+        module: copy
+        dest: "../../Reportspackage.csv"
+        content: "Host,Package,Version\n"
+        force: no
+      become: no
+      run_once: true
+
+    - name: Append Package info của từng host vào CSV
+      local_action:
+        module: blockinfile
+        path: "../../Reportspackage.csv"
+        marker: "# {mark} HOST {{ inventory_hostname }}"
+        block: "{{ packages_csv }}"
+      become: no
+      delegate_to: localhost
