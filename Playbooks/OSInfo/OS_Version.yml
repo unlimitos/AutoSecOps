@@ -1,0 +1,20 @@
+# Gather Linux OS Version
+    - name: Thử gather_facts nếu có Python hỗ trợ
+      setup:
+      register: osfacts
+      ignore_errors: yes
+
+    - name: Set fact từ gather_facts
+      set_fact:
+        os_version: "{{ ansible_distribution | default('Unknown') }},{{ ansible_distribution_version | default('') }}"
+      when: osfacts is succeeded
+
+    - name: Fallback - lấy OS version bằng cat /etc/*release*
+      raw: cat /etc/*release*
+      register: osrelease
+      when: osfacts is failed
+
+    - name: Set fact từ fallback
+      set_fact:
+        os_version: "{{ osrelease.stdout_lines | join(' , ') }}"
+      when: osfacts is failed

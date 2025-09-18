@@ -1,0 +1,21 @@
+---
+- name: Gather Linux OS Version and export to CSV
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Đảm bảo file CSV có header (chạy 1 lần)
+      local_action:
+        module: copy
+        dest: "../../Reports/os_versions.csv"
+        content: "Hostname,OS Version\n"
+        force: no
+      run_once: true
+
+    - name: Append OS info của từng host vào CSV
+      local_action:
+        module: lineinfile
+        path: "../../Reports/os_versions.csv"
+        line: "{{ inventory_hostname }},{{ host_os_version | default('Unknown') }}"
+        insertafter: EOF
+      delegate_to: localhost
+      when mode = "prod"    

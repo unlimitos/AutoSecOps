@@ -1,3 +1,12 @@
+# Init keygent
+ssh-keygen -t rsa -b 4096 -f /home/huytq/AutoSecOps/SSHKey/id_rsa
+
+# Copy keygen to remote host
+ssh-copy-id -i /home/huytq/AutoSecOps/SSHKey/id_rsa.pub speedtest@10.52.17.243
+
+#Test key mowis tao
+ssh -i /home/huytq/AutoSecOps/SSHKey/id_rsa speedtest@10.52.17.243
+
 # AutoSecOps
 
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
