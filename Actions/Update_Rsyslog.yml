@@ -1,0 +1,15 @@
+---
+- name: Check content of system files
+  hosts: all
+  become: false
+  tasks:
+   - name: Check /etc/rsyslog.conf  file
+     shell: "sha1sum /etc/rsyslog.conf | tee /tmp/sha_rsyslog.txt"
+     register: rsyslog_hash
+     become: true
+     become_user: root
+   - name: Save /etc/rsyslog.conf content to log file
+     fetch:
+       src:  "/tmp/sha_rsyslog.txt"
+       dest: "/home/huytq/AutoSecOps/LogChecks/"
+     when: rsyslog_hash.stdout is defined  

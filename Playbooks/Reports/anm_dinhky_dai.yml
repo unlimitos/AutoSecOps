@@ -1,0 +1,59 @@
+---
+- name: Build report ANM DAI
+  hosts: all
+  gather_facts: no
+
+  tasks:
+    - name: Kiem tra SIEM Status
+      include_tasks: ../Actions/Siem_Status.yml
+
+    - name: Build row cho từng host
+      set_fact:
+        host_report_row: "{{ inventory_hostname }}, {{ Siem_Status | default('N/A') }}, {{ is_change_config | default('N/A') }}"
+      delegate_to: localhost
+
+    - name: Debug row của từng host
+      debug:
+        var: host_report_row
+      when: mode == "dev"
+
+    # Tổng hợp tất cả host_report_row thành report_rows (chạy 1 lần)
+    - name: Gom tất cả host rows vào report_rows
+      set_fact:
+        report_rows: >-
+          {{
+            groups['all']
+            | map('extract', hostvars, 'host_report_row')
+            | select('defined')
+            | list
+          }}
+      delegate_to: localhost
+
+    - name: Debug full report
+      debug:
+        var: report_rows
+      when: mode == "dev"
+      run_once: true
+    
+    # - name: Đảm bảo file CSV có header
+    #   local_action:
+    #     module: copy
+    #     dest: "../../Reports/anm_dinhy_dai.csv"
+    #     content: "Hostname,SIEM Status, SIEM Change Config\n"
+    #     force: no
+    #   run_once: true
+    #   delegate_to: localhost
+    #   when: mode == "prod" 
+    
+    - name: Append Siem status của từng host vào CSV
+      local_action:
+        module: copy
+        dest: "../../Reports/anm_dinhy_dai.csv"
+        content: |-
+          Hostname,SIEM Status, SIEM Change Config
+          {% for row in report_rows %}
+          {{ row }}
+          {% endfor %}
+      become: no
+      delegate_to: localhost
+      when: mode == "prod"      

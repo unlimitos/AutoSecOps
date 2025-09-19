@@ -18,4 +18,4 @@
         line: "{{ inventory_hostname }},{{ host_os_version | default('Unknown') }}"
         insertafter: EOF
       delegate_to: localhost
-      when mode = "prod"    
+      when: mode = "prod"    

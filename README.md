@@ -3,10 +3,17 @@ ssh-keygen -t rsa -b 4096 -f /home/huytq/AutoSecOps/SSHKey/id_rsa
 
 # Copy keygen to remote host
 ssh-copy-id -i /home/huytq/AutoSecOps/SSHKey/id_rsa.pub speedtest@10.52.17.243
+sshpass -p 'April04-2024' ssh-copy-id -i /home/huytq/AutoSecOps/SSHKey/id_rsa.pub root@10.30.111.10
 
-#Test key mowis tao
+
+#Test key mowis taos
 ssh -i /home/huytq/AutoSecOps/SSHKey/id_rsa speedtest@10.52.17.243
 
+# lay public key dua vao known host
+ssh-keyscan -H 10.52.134.37 >> ./SSHKey/ssh_known_hosts 
+
+
+ ssh-keygen -f '/home/huytq/.ssh/known_hosts' -R '10.52.134.71'
 # AutoSecOps
 
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
@@ -33,3 +40,10 @@ echo '{"update_data": {"Centos": "Host1", "Nginx": "Running fast"}}'  | ansible-
 
 # Action list
 ansible-playbook -i HostsConfig.ini ./CollectOSInfo/OSVersion.yml
+
+
+April04-2024
+
+Acc3ssMT_43
+
+MTNoc-2024

@@ -1,0 +1,38 @@
+    - name: Check Rsyslog Services
+      ansible.builtin.systemd:
+        name: rsyslog.service
+      register: rsyslog_service_status
+    - name: Set fact from  Rsyslog Services
+      set_fact:
+        Siem_Status: "{{rsyslog_service_status.status.ActiveState | default('Unknown') }}"
+
+    - name: Check /etc/rsyslog.conf file
+      shell: "sha1sum /etc/rsyslog.conf"
+      register: rsyslog_hash
+      become: true
+      become_user: root
+    
+    - name: Load rsyslog_hash backup file
+      local_action:
+        module: shell
+        cmd: 'cat /home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp/sha_rsyslog.txt'
+      register: file_content
+    
+    - name: Compare Content
+      set_fact:
+        is_change_config: >-
+          {%- if file_content.stdout == rsyslog_hash.stdout -%}
+            "Same content"
+          {%- elif file_content.stdout == "ERROR" -%}
+              "Please update file content for the first time"
+          {%- elif rsyslog_hash.stdout == "ERROR" -%}
+              "Error when run sha1sum /etc/rsyslog.conf"
+          {%- else -%}
+               "Rsyslog.conf different with backup file"
+          {%- endif -%}
+      ignore_errors: true
+
+    - name: Compare Content Debug
+      debug: 
+        msg: "Back up content {{file_content.stdout}} : Current content {{rsyslog_hash.stdout}}"
+      when: mode == "dev"
