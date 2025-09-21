@@ -6,10 +6,16 @@
   tasks:
     - name: Kiem tra SIEM Status
       include_tasks: ../Actions/Siem_Status.yml
+    
+    - name: Kiem tra etc/passwd Status
+      include_tasks: ../Actions/Passwd_Status.yml
+
+    - name: Kiem tra etc/group Status
+      include_tasks: ../Actions/Group_Status.yml
 
     - name: Build row cho từng host
       set_fact:
-        host_report_row: "{{ inventory_hostname }}, {{ Siem_Status | default('N/A') }}, {{ is_change_config | default('N/A') }}"
+        host_report_row: "{{ inventory_hostname }}, {{ Siem_Status | default('N/A') }}, {{ is_change_config | default('N/A') }}, {{ is_passwd_change_config | default('N/A') }}, {{ is_group_change_config | default('N/A') }}"
       delegate_to: localhost
 
     - name: Debug row của từng host
@@ -50,7 +56,7 @@
         module: copy
         dest: "../../Reports/anm_dinhy_dai.csv"
         content: |-
-          Hostname,SIEM Status, SIEM Change Config
+          Hostname,SIEM Status, SIEM Change Config, Passwd Change Config, Group Change Config
           {% for row in report_rows %}
           {{ row }}
           {% endfor %}

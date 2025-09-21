@@ -1,0 +1,15 @@
+---
+- name: Check content of system files
+  hosts: all
+  become: false
+  tasks:
+   - name: Check /etc/group  file
+     shell: "sha1sum /etc/group | tee /tmp/sha_group.txt"
+     register: group_hash
+     become: true
+     become_user: root
+   - name: Save /etc/group content to log file
+     fetch:
+       src:  "/tmp/sha_group.txt"
+       dest: "/home/huytq/AutoSecOps/LogChecks/"
+     when: group_hash.stdout is defined  

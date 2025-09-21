@@ -1,0 +1,15 @@
+---
+- name: Check content of system files
+  hosts: all
+  become: false
+  tasks:
+   - name: Check /etc/passwd  file
+     shell: "sha1sum /etc/passwd | tee /tmp/sha_passwd.txt"
+     register: passwd_hash
+     become: true
+     become_user: root
+   - name: Save /etc/passwd content to log file
+     fetch:
+       src:  "/tmp/sha_passwd.txt"
+       dest: "/home/huytq/AutoSecOps/LogChecks/"
+     when: passwd_hash.stdout is defined  

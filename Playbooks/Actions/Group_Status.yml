@@ -1,0 +1,30 @@
+    - name: Check /etc/group file
+      shell: "sha1sum /etc/group"
+      register: group_hash
+      become: true
+      become_user: root
+    
+    - name: Load group_hash backup file
+      local_action:
+        module: shell
+        cmd: 'cat /home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp/sha_group.txt'
+      register: file_content
+    
+    - name: Compare Content
+      set_fact:
+        is_group_change_config: >-
+          {%- if file_content.stdout == group_hash.stdout -%}
+            "Same content"
+          {%- elif file_content.stdout == "ERROR" -%}
+              "Please update file content for the first time"
+          {%- elif group_hash.stdout == "ERROR" -%}
+              "Error when run sha1sum /etc/group"
+          {%- else -%}
+               "Passwd different with backup file"
+          {%- endif -%}
+      ignore_errors: true
+
+    - name: Compare Content Debug
+      debug: 
+        msg: "Back up content {{file_content.stdout}} : Current content {{group_hash.stdout}}"
+      when: mode == "dev"
