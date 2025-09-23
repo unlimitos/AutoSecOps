@@ -3,17 +3,45 @@
       register: group_hash
       become: true
       become_user: root
+
+    # Kiểm tra file backup đã tồn tại chưa
+    - name: Kiểm tra backup file tồn tại chưa
+      local_action:
+        module: stat
+        path: "/home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp/sha_group.txt"
+      register: backup_stat
+
+    - name: Tạo backup file lần đầu (tự tạo thư mục nếu chưa có)
+      ansible.builtin.shell: |
+        mkdir -p /home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp && \
+        echo "{{ group_hash.stdout }}" > /home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp/sha_group.txt
+      delegate_to: localhost
+      when: not backup_stat.stat.exists
+      run_once: false   # chạy cho từng host riêng
+      
+    # Nếu chưa có file backup → tạo mới với giá trị hiện tại
+    # - name: Tạo backup file lần đầu
+    #   local_action:
+    #     module: copy
+    #     dest: "/home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp/sha_group.txt"
+    #     content: "{{ group_hash.stdout }}"
+    #   when: not backup_stat.stat.exists
+    #   run_once: false   # chạy cho từng host riêng
     
-    - name: Load group_hash backup file
+    # Load nội dung file backup (nếu có)
+    - name: Load sha_group backup file
       local_action:
         module: shell
         cmd: 'cat /home/huytq/AutoSecOps/LogChecks/{{ inventory_hostname }}/tmp/sha_group.txt'
       register: file_content
-    
+      when: backup_stat.stat.exists
+
     - name: Compare Content
       set_fact:
         is_group_change_config: >-
-          {%- if file_content.stdout == group_hash.stdout -%}
+          {%- if not backup_stat.stat.exists -%}
+            First calculate hash group file
+          {%- elif file_content.stdout == group_hash.stdout -%}
             "Same content"
           {%- elif file_content.stdout == "ERROR" -%}
               "Please update file content for the first time"

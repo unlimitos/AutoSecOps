@@ -50,11 +50,23 @@
     #   run_once: true
     #   delegate_to: localhost
     #   when: mode == "prod" 
-    
+    - name: Xác định tên file report
+      set_fact:
+        report_file: >-
+          {%- if report_name is defined and report_name | length > 0 -%}
+            {{ report_name }}
+          {%- elif ansible_limit is defined and ansible_limit | length > 0 -%}
+            {{ ansible_limit }}_report.csv
+          {%- else -%}
+            default_report.csv
+          {%- endif -%}
+      run_once: true
+      delegate_to: localhost
+
     - name: Append Siem status của từng host vào CSV
       local_action:
         module: copy
-        dest: "../../Reports/anm_dinhy_dai.csv"
+        dest: "../../Reports/{{ report_file }}"
         content: |-
           Hostname,SIEM Status, SIEM Change Config, Passwd Change Config, Group Change Config
           {% for row in report_rows %}

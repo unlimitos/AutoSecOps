@@ -1,0 +1,1 @@
+ansible -i HostsConfig.ini $1 -m ping

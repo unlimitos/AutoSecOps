@@ -13,7 +13,8 @@ ssh -i /home/huytq/AutoSecOps/SSHKey/id_rsa speedtest@10.52.17.243
 ssh-keyscan -H 10.52.134.37 >> ./SSHKey/ssh_known_hosts 
 
 
- ssh-keygen -f '/home/huytq/.ssh/known_hosts' -R '10.52.134.71'
+ ssh-keygen -f '/home/huytq/.ssh/known_hosts' -R '10.30.113.1'
+ ssh-keygen -f '/home/huytq/AutoSecOps/ssh_known_hosts' -R '10.30.113.1'
 # AutoSecOps
 
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
@@ -47,3 +48,8 @@ April04-2024
 Acc3ssMT_43
 
 MTNoc-2024
+
+2025-ranmt-NOC
+omc/2025@Mbfnocmt@_
+
+netact06_1 : nasroot

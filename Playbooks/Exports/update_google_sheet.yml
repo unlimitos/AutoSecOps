@@ -19,7 +19,7 @@
     - name: Gom tất cả extra-vars thành dict update_data
       set_fact:
         update_data: "{{ update_data }}"
-
+        
     - name: Debug credentials raw
       debug:
         msg: "{{ google_sheet_creds }}"
@@ -45,6 +45,6 @@
       args:
         stdin: "{{ update_data | to_json }}"  
       environment:
-        GOOGLE_SHEET_CREDENTIALS: "{{ google_sheet_creds }}"
+        GOOGLE_SHEET_CREDENTIALS: "{{ google_sheet_creds | to_json }}"
         MODE: "prod"
       when: mode == "prod"
